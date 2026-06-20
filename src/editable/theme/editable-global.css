@@ -14,15 +14,27 @@ body {
   font-feature-settings: "kern", "liga", "clig", "calt";
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 20%, rgba(8, 191, 174, .10), transparent 22rem),
+    radial-gradient(circle at 86% 12%, rgba(255, 104, 66, .10), transparent 18rem),
+    radial-gradient(circle at 72% 80%, rgba(8, 191, 174, .08), transparent 22rem);
+}
+
 *::selection {
-  background: var(--editorial-red) !important;
-  color: #fff !important;
-  -webkit-text-fill-color: #fff;
+  background: #08bfae !important;
+  color: #08211f !important;
+  -webkit-text-fill-color: #08211f;
 }
 
 *::-moz-selection {
-  background: var(--editorial-red) !important;
-  color: #fff !important;
+  background: #08bfae !important;
+  color: #08211f !important;
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -32,12 +44,12 @@ body {
 
 .editorial-brand,
 .editorial-serif {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: inherit;
 }
 
 .editorial-brand {
-  font-style: italic;
-  letter-spacing: -0.065em;
+  font-style: normal;
+  letter-spacing: -0.035em;
 }
 
 .editorial-rule { border-color: color-mix(in srgb, var(--editorial-ink) 22%, transparent); }
@@ -79,7 +91,98 @@ body {
 .article-content li { margin: .5em 0; }
 .article-content img { width: 100%; margin: 2em 0; }
 
-input, textarea, select, button { border-radius: 0 !important; }
+input, textarea, select, button { border-radius: 6px; }
+
+.editable-animate {
+  animation: editableFadeUp .7s ease both;
+  animation-delay: var(--editable-delay, 0ms);
+}
+
+.editable-stagger > * {
+  animation: editableFadeUp .7s ease both;
+  animation-delay: calc(var(--editable-index, 0) * 70ms);
+}
+
+.editable-card {
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, .08);
+  transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+}
+
+.editable-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(8, 191, 174, .35);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, .13);
+}
+
+.editable-underline {
+  position: relative;
+}
+
+.editable-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--slot4-teal);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .25s ease;
+}
+
+.editable-underline:hover::after,
+.editable-underline[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.editable-progress {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  width: 100%;
+  height: 3px;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--slot4-teal), var(--slot4-accent-fill));
+  animation: editableReadProgress linear;
+  animation-timeline: scroll(root);
+}
+
+.editable-dots {
+  background-image:
+    radial-gradient(circle, rgba(8, 191, 174, .35) 0 4px, transparent 5px),
+    radial-gradient(circle, rgba(255, 104, 66, .35) 0 5px, transparent 6px);
+  background-position: 5% 12%, 91% 78%;
+  background-size: 220px 220px, 260px 260px;
+}
+
+@keyframes editableFadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes editableReadProgress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editable-animate,
+  .editable-stagger > *,
+  .editable-progress {
+    animation: none !important;
+  }
+
+  .editable-card,
+  img {
+    transition: none !important;
+  }
+}
 
 @media (max-width: 640px) {
   .article-content { font-size: 1.05rem; line-height: 1.72; }
