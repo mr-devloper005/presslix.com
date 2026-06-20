@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Bookmark, Building2, Camera, CheckCircle2, Download, ExternalLink, FileText, Globe2, Mail, MapPin, MessageCircle, Phone, Tag, UserRound } from 'lucide-react'
+import { ArrowLeft, Bookmark, Building2, Camera, CheckCircle2, Download, ExternalLink, FileText, Globe2, Mail, MapPin, MessageCircle, Phone, Search, Tag, UserRound } from 'lucide-react'
+import { normalizeCategory } from '@/lib/categories'
 import { buildPostMetadata, buildTaskMetadata } from '@/lib/seo'
 import { buildPostUrl, fetchArticleComments, fetchTaskPostBySlug, fetchTaskPosts } from '@/lib/task-data'
 import { getTaskConfig, SITE_CONFIG, type TaskKey } from '@/lib/site-config'
@@ -134,37 +135,119 @@ function BackLink({ task }: { task: TaskKey }) {
 
 function ArticleDetail({ task, post, related, comments }: { task: TaskKey; post: SitePost; related: SitePost[]; comments: Array<{ id: string; name: string; comment: string; createdAt: string }> }) {
   const images = getImages(post)
-  const published = post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''
+  const category = categoryOf(post, 'Media distribution')
+  const sidebarTags = Array.from(new Set([category, ...(post.tags || []), ...related.flatMap((item) => item.tags || [])].filter(Boolean))).slice(0, 10)
+  const sidebarGallery = [...images, ...related.flatMap(getImages)].slice(0, 6)
   return (
-    <section className="bg-[#f7f4ef]">
-      <header className="border-b border-black/20">
-        <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <section className="bg-[var(--slot4-page-bg)]">
+      <header className="editable-dots relative overflow-hidden bg-[var(--slot4-dark-bg)] text-white">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(23,28,40,.72),rgba(23,28,40,.95))]" />
+        <div className="relative mx-auto max-w-[1180px] px-4 py-14 text-center sm:px-6 lg:px-8 lg:py-20">
           <BackLink task={task} />
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t-4 border-black pt-4 text-[11px] font-black uppercase tracking-[0.16em]">
-            <span className="text-[#c92f2f]">{categoryOf(post, 'News')}</span>
-            {published ? <time>{published}</time> : null}
+          <div className="mt-8 flex justify-center text-[11px] font-black uppercase tracking-[0.16em]">
+            <span className="rounded-md bg-[var(--slot4-accent)] px-3 py-2 text-white">{category}</span>
           </div>
-          <h1 className="editorial-serif mt-6 max-w-6xl text-5xl font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-[5.5rem]">{post.title}</h1>
-          {summaryText(post) ? <p className="mt-6 max-w-4xl text-xl font-bold leading-8 text-black/68 sm:text-2xl">{summaryText(post)}</p> : null}
+          <h1 className="mx-auto mt-6 max-w-5xl text-5xl font-black leading-[1.02] tracking-[-0.045em] sm:text-6xl lg:text-7xl">{post.title}</h1>
         </div>
       </header>
 
-      {images[0] ? (
-        <figure className="mx-auto max-w-[1320px] border-x border-b border-black/15 bg-white">
-          <img src={images[0]} alt="" className="max-h-[760px] w-full object-cover" />
-          <figcaption className="border-t border-black/15 px-4 py-3 text-xs italic text-black/55 sm:px-6">Featured image for {post.title}</figcaption>
-        </figure>
-      ) : null}
-
-      <div className="mx-auto grid max-w-[1180px] gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,760px)_300px] lg:px-8 lg:py-16">
-        <article className="min-w-0 border-t-4 border-black pt-8">
+      <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-16">
+        <article className="min-w-0">
+          {images[0] ? (
+            <figure className="mb-8 overflow-hidden rounded-lg bg-white shadow-[0_24px_70px_rgba(15,23,42,.10)]">
+              <img src={images[0]} alt="" className="max-h-[620px] w-full object-cover transition duration-700 hover:scale-[1.02]" />
+            </figure>
+          ) : null}
+          <div className="rounded-lg bg-white p-6 shadow-sm sm:p-8">
           <BodyContent post={post} />
           <EditableComments slug={post.slug} comments={comments} />
+          </div>
         </article>
-        <div className="border-t-4 border-[#c92f2f] pt-5">
-          <RelatedPanel task={task} post={post} related={related} />
-        </div>
+        <DetailSidebar task={task} post={post} related={related} gallery={sidebarGallery} tags={sidebarTags} />
       </div>
+    </section>
+  )
+}
+
+function DetailSidebar({ task, post, related, gallery, tags }: { task: TaskKey; post: SitePost; related: SitePost[]; gallery: string[]; tags: string[] }) {
+  const taskConfig = getTaskConfig(task)
+  const route = taskConfig?.route || '/'
+  const category = categoryOf(post, 'Media')
+  const author = post.authorName || SITE_CONFIG.name
+  const categories = Array.from(new Set([category, ...related.map((item) => categoryOf(item, 'Media'))])).slice(0, 6)
+
+  return (
+    <aside className="space-y-9 lg:sticky lg:top-28 lg:self-start">
+      <section className="editable-dots rounded-lg bg-[var(--slot4-accent)] p-8 text-center text-white">
+        <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-white/95 text-[var(--slot4-page-text)]">
+          {gallery[0] ? <img src={gallery[0]} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-12 w-12" />}
+        </div>
+        <p className="mt-4 text-sm leading-7 text-white/82">Media distribution notes, campaign updates, and public information from the desk.</p>
+      </section>
+
+      <form action="/search" className="flex rounded-md bg-white p-2 shadow-sm">
+        <input name="q" placeholder="Search ..." className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm font-semibold outline-none" />
+        <button className="rounded-md bg-[var(--slot4-teal)] px-4 text-white"><Search className="h-5 w-5" /></button>
+      </form>
+
+      <DetailSidebarBlock title="Categories">
+        <ul className="grid gap-3">
+          {categories.map((item) => (
+            <li key={item}>
+              <Link href={`${route}?category=${normalizeCategory(item)}`} className="flex items-center gap-3 text-sm font-black hover:text-[var(--slot4-teal)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--slot4-teal)]" /> {item}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </DetailSidebarBlock>
+
+      {related.length ? (
+        <DetailSidebarBlock title="Recent Posts">
+          <div className="grid gap-4">
+            {related.slice(0, 4).map((item) => (
+              <Link key={item.id || item.slug} href={buildPostUrl(task, item.slug)} className="grid grid-cols-[60px_1fr] gap-3">
+                <img src={getImages(item)[0] || '/placeholder.svg?height=120&width=120'} alt="" className="h-14 w-14 rounded-md object-cover" />
+                <div>
+                  <h3 className="line-clamp-2 text-sm font-black leading-tight">{item.title}</h3>
+                  <p className="mt-1 text-xs font-bold uppercase text-black/35">{categoryOf(item, 'Media')}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </DetailSidebarBlock>
+      ) : null}
+
+      {gallery.length ? (
+        <DetailSidebarBlock title="Gallery">
+          <div className="grid grid-cols-3 gap-2">
+            {gallery.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" className="aspect-square rounded-md object-cover" />)}
+          </div>
+        </DetailSidebarBlock>
+      ) : null}
+
+      {tags.length ? (
+        <DetailSidebarBlock title="Tags">
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => <span key={tag} className="rounded-md bg-black/[0.04] px-3 py-2 text-xs font-semibold text-black/65">{tag}</span>)}
+          </div>
+        </DetailSidebarBlock>
+      ) : null}
+
+      <div className="editable-dots overflow-hidden rounded-lg bg-[var(--slot4-dark-bg)] p-8 text-center text-white">
+        <p className="text-3xl font-black tracking-[-0.04em]">{SITE_CONFIG.name}</p>
+        <p className="mt-4 text-lg font-black leading-8">Start distributing media updates today</p>
+        <Link href="/contact" className="mt-7 inline-flex rounded-md bg-[var(--slot4-accent)] px-6 py-3 text-sm font-black text-white">Start Now</Link>
+      </div>
+    </aside>
+  )
+}
+
+function DetailSidebarBlock({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h2 className="border-l-4 border-black/10 pl-3 text-sm font-black uppercase tracking-[0.12em] text-[var(--slot4-accent)]">{title}</h2>
+      <div className="mt-5">{children}</div>
     </section>
   )
 }
@@ -400,17 +483,16 @@ function RelatedPanel({ task, post, related, compact = false }: { task: TaskKey;
   return (
     <aside className="min-w-0 space-y-5">
       {!compact ? (
-        <div className="border-b border-black/20 bg-white p-5">
+        <div className="rounded-lg bg-white p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] opacity-55">About this post</p>
           <div className="mt-4 grid gap-3 text-sm font-bold opacity-75">
             <p className="inline-flex items-center gap-2"><Tag className="h-4 w-4" /> Task: {taskConfig?.label || task}</p>
             <p className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Site: {SITE_CONFIG.name}</p>
-            {post.publishedAt ? <p>Published: {new Date(post.publishedAt).toLocaleDateString()}</p> : null}
           </div>
         </div>
       ) : null}
       {related.length ? (
-        <div className="border-b border-black/20 bg-white p-5">
+        <div className="rounded-lg bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-black tracking-[-0.04em]">More like this</h2>
             <Link href={taskConfig?.route || '/'} className="text-xs font-black uppercase tracking-[0.16em] opacity-55">View all</Link>
@@ -427,7 +509,7 @@ function RelatedPanel({ task, post, related, compact = false }: { task: TaskKey;
 function RelatedCard({ task, post }: { task: TaskKey; post: SitePost }) {
   const image = getImages(post)[0]
   return (
-    <Link href={buildPostUrl(task, post.slug)} className="group flex gap-3 border-t border-black/15 py-3 transition hover:text-[#c92f2f]">
+    <Link href={buildPostUrl(task, post.slug)} className="group flex gap-3 border-t border-black/10 py-3 transition hover:text-[var(--slot4-teal)]">
       {image && task !== 'sbm' ? <img src={image} alt="" className="h-20 w-20 shrink-0 object-cover" /> : <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-black text-white"><FileText className="h-6 w-6" /></div>}
       <div className="min-w-0">
         <h3 className="line-clamp-3 text-sm font-black leading-tight tracking-[-0.03em]">{post.title}</h3>
