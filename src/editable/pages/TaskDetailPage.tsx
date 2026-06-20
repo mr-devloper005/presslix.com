@@ -182,7 +182,6 @@ function DetailSidebar({ task, post, related, gallery, tags }: { task: TaskKey; 
         <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-white/95 text-[var(--slot4-page-text)]">
           {gallery[0] ? <img src={gallery[0]} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-12 w-12" />}
         </div>
-        
         <p className="mt-4 text-sm leading-7 text-white/82">Media distribution notes, campaign updates, and public information from the desk.</p>
       </section>
 
